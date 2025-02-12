@@ -1,5 +1,5 @@
 import discord
-import random
+from collections import defaultdict
 from discord.ext import tasks, commands
 from datetime import datetime
 from utils.file_utils import load_last_message_times, load_questions
@@ -10,7 +10,8 @@ from config import BOT_TOKEN, INACTIVITY_THRESHOLD, INACTIVITY_LOOP_TIME
 # Load questions and channels
 last_message_times = load_last_message_times("channels.json")
 questions = load_questions("questions.json")
-
+# track the last asked question index for each channel
+questions_indices = defaultdict(int)
 # Enable intents
 intents = discord.Intents.default()
 intents.message_content = True
@@ -34,9 +35,12 @@ async def check_inactivity():
 
                 channel = bot.get_channel(key)  # Use bot instance
                 if channel and key in questions and questions[key]:  # Ensure key exists in questions
-                    question = random.choice(questions[key])
+                    index = questions_indices[key]
+                    question = questions[key][index]
                     await channel.send(question)
-                    last_message_times[key] = datetime.utcnow()
+                    last_message_times[key] = datetime.utcnow() # update last message time
+                    # update index of question, wrap around if needed
+                    questions_indices[key] = (index + 1) % len(questions[key])
 
 
 @bot.event

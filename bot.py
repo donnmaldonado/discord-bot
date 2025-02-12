@@ -4,7 +4,7 @@ from discord.ext import tasks, commands
 from datetime import datetime
 from utils.file_utils import load_last_message_times, load_questions
 from utils.id_utils import generate_unique_id
-from utils.sheets_utils import save_message_data, append_reaction, save_roles_data
+from utils.sheets_utils import save_message_data, append_reaction, save_roles_data, save_email
 from config import BOT_TOKEN, INACTIVITY_THRESHOLD, INACTIVITY_LOOP_TIME
 
 # Load questions and channels
@@ -47,36 +47,39 @@ async def on_ready():
 
 @bot.event
 async def on_message(message):
-    # update last message time
-    last_message_times[message.channel.id] = datetime.utcnow()
+    if message.guild is None and message.author != bot.user:
+        save_email(generate_unique_id(message.author), message.content)
+        await message.channel.send("Thank you! Your email has been recorded.")
 
-    timestamp = message.created_at.strftime('%Y-%m-%d %H:%M:%S %Z')
-    reference = message.reference
-    sticker = message.stickers
-    reactions = message.reactions
+    elif message.guild is not None:
+        last_message_times[message.channel.id] = datetime.utcnow()
+        timestamp = message.created_at.strftime('%Y-%m-%d %H:%M:%S %Z')
+        reference = message.reference
+        sticker = message.stickers
+        reactions = message.reactions
 
-    if message.author != bot.user:
-        author = generate_unique_id(message.author)
-    else:
-        author = "bot"
+        if message.author != bot.user:
+            author = generate_unique_id(message.author)
+        else:
+            author = "bot"
 
-    if reference is not None:                    
-        reference = str(reference.message_id)
-    else:
-        reference = ""
+        if reference is not None:                    
+            reference = str(reference.message_id)
+        else:
+            reference = ""
 
-    if sticker:    # checks if stickers list is empty
-        sticker = sticker[0]
-    else:
-        sticker = ""
+        if sticker:    # checks if stickers list is empty
+            sticker = sticker[0]
+        else:
+            sticker = ""
 
-    if not reactions:
-        reactions = ""
-    else:
-        reactions = ",".join(reactions)
-            
-    save_message_data([author, str(message.id), reference, str(message.channel), message.clean_content, str(sticker), reactions, timestamp])
-    await bot.process_commands(message)  # Allow command processing
+        if not reactions:
+            reactions = ""
+        else:
+            reactions = ",".join(reactions)
+                
+        save_message_data([author, str(message.id), reference, str(message.channel), message.clean_content, str(sticker), reactions, timestamp])
+        await bot.process_commands(message)  # Allow command processing
 
 
 @bot.event
@@ -100,7 +103,16 @@ async def on_reaction_add(reaction, user):
 
 
 @bot.event
-async def on_member_update(before,after):
+async def on_member_update(before, after):
+    # ask verified students for email via dm
+    new_roles = set(after.roles) - set(before.roles) # detect added roles
+    for role in new_roles:
+        if role.name.lower() == "verified student": 
+            try:
+                await after.send("Welcome! Please reply with your university email so we can contact you for compensation.")
+            except discord.Forbidden:
+                print(f"Could not send a DM to {after.name}. They might have DMs disabled")
+
     roles = [role.name for role in after.roles if role.name not in ["@everyone","verified student"]]
     member = generate_unique_id(after.name)
     save_roles_data(member, roles)
@@ -110,7 +122,6 @@ async def on_member_update(before,after):
 # async def test_join(ctx):
 #     """Simulate a new member joining for testing."""
 #     await on_member_join(ctx.author)
-
 
 # Run bot
 bot.run(BOT_TOKEN)

@@ -5,7 +5,7 @@ from datetime import datetime
 from utils.file_utils import load_last_message_times, load_questions
 from utils.id_utils import generate_unique_id
 from utils.sheets_utils import save_message_data, append_reaction, save_roles_data, save_email, verify_transfer_student
-from config import BOT_TOKEN, INACTIVITY_THRESHOLD, INACTIVITY_LOOP_TIME
+from config import BOT_TOKEN, SERVER_ID, VERIFIED_ROLE, INACTIVITY_THRESHOLD, INACTIVITY_LOOP_TIME
 
 # Load questions and channels
 last_message_times = load_last_message_times("channels.json")
@@ -53,9 +53,9 @@ async def on_ready():
 @bot.event
 async def on_message(message):
     if message.guild is None and message.author != bot.user:
-        guild = bot.get_guild(1311452776081129615)
+        guild = bot.get_guild(int(SERVER_ID))
         member = guild.get_member(message.author.id)
-        verified_role = discord.utils.get(guild.roles, name="Freshman")
+        verified_role = discord.utils.get(guild.roles, name=VERIFIED_ROLE)
 
         if verify_transfer_student(message.content):
             save_email(generate_unique_id(message.author), message.content)
@@ -124,7 +124,7 @@ async def on_member_update(before, after):
     # ask verified students for email via dm
     new_roles = set(after.roles) - set(before.roles) # detect added roles
     for role in new_roles:
-        if role.name.lower() == "freshman": 
+        if role.name.lower() == VERIFIED_ROLE: 
             try:
                 await after.send("Welcome! Please reply with your university email so we can contact you for compensation. (You must be a transfer student)")
             except discord.Forbidden:

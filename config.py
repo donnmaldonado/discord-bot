@@ -5,6 +5,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
+SERVER_ID = os.getenv("SERVER_ID")
+VERIFIED_ROLE = os.getenv("VERIFIED_ROLE")
 DATA_SHEET_ID = os.getenv("DATA_SHEET_ID")
 MESSAGES_WORKSHEET = os.getenv("MESSAGES_WORKSHEET")
 ROLES_WORKSHEET = os.getenv("ROLES_WORKSHEET")

@@ -4,7 +4,7 @@ from discord.ext import tasks, commands
 from datetime import datetime
 from utils.file_utils import load_last_message_times, load_questions
 from utils.id_utils import generate_unique_id
-from utils.sheets_utils import save_message_data, append_reaction, save_roles_data, save_email
+from utils.sheets_utils import save_message_data, append_reaction, save_roles_data, save_email, verify_transfer_student
 from config import BOT_TOKEN, INACTIVITY_THRESHOLD, INACTIVITY_LOOP_TIME
 
 # Load questions and channels
@@ -46,14 +46,27 @@ async def check_inactivity():
 @bot.event
 async def on_ready():
     print(f'Logged in as {bot.user}!')
-    check_inactivity.start()
+    if not check_inactivity.is_running():
+        check_inactivity.start()
 
 
 @bot.event
 async def on_message(message):
     if message.guild is None and message.author != bot.user:
-        save_email(generate_unique_id(message.author), message.content)
-        await message.channel.send("Thank you! Your email has been recorded.")
+        guild = bot.get_guild(1311452776081129615)
+        member = guild.get_member(message.author.id)
+        verified_role = discord.utils.get(guild.roles, name="Freshman")
+
+        if verify_transfer_student(message.content):
+            save_email(generate_unique_id(message.author), message.content)
+            if verified_role not in member.roles:
+                await member.add_roles(verified_role)
+                await message.channel.send("Thank you! Your email has been recorded.")
+            else:
+                await message.channel.send("Thank you! Your email has been recorded.")
+        else:
+            await message.channel.send("We could not find that email in our records, try again if there was a typo.")
+            await member.remove_roles(verified_role)
 
     elif message.guild is not None:
         last_message_times[message.channel.id] = datetime.utcnow()
@@ -111,9 +124,9 @@ async def on_member_update(before, after):
     # ask verified students for email via dm
     new_roles = set(after.roles) - set(before.roles) # detect added roles
     for role in new_roles:
-        if role.name.lower() == "verified student": 
+        if role.name.lower() == "freshman": 
             try:
-                await after.send("Welcome! Please reply with your university email so we can contact you for compensation.")
+                await after.send("Welcome! Please reply with your university email so we can contact you for compensation. (You must be a transfer student)")
             except discord.Forbidden:
                 print(f"Could not send a DM to {after.name}. They might have DMs disabled")
 

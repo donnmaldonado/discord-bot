@@ -1,6 +1,6 @@
 import gspread
 from google.oauth2.service_account import Credentials
-from config import DATA_SHEET_ID, MESSAGES_WORKSHEET, ROLES_WORKSHEET, EMAILS_SHEET_ID, EMAILS_WORKSHEET
+from config import DATA_SHEET_ID, MESSAGES_WORKSHEET, ROLES_WORKSHEET, EMAILS_SHEET_ID, EMAILS_WORKSHEET, TRANSFER_SHEET_ID, TRANSFER_WORKSHEET 
 
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive']
 
@@ -50,8 +50,24 @@ def save_roles_data(member, roles):
         row = cell.row
         worksheet.update_cell(row, 2, roles_str)
 
+def verify_transfer_student(email):
+    credentials = Credentials.from_service_account_file('adam-bot-service-account-key.json', scopes=SCOPES)
+    gc = gspread.authorize(credentials)
+    worksheet = gc.open_by_key(TRANSFER_SHEET_ID).worksheet(TRANSFER_WORKSHEET)
+    cell = worksheet.find(email, in_column=6)
+    if cell == None:
+        return False
+    else:
+        return True
+
 def save_email(unique_id, email):
     credentials = Credentials.from_service_account_file('adam-bot-service-account-key.json', scopes=SCOPES)
     gc = gspread.authorize(credentials)
     worksheet = gc.open_by_key(EMAILS_SHEET_ID).worksheet(EMAILS_WORKSHEET)
-    worksheet.append_row([unique_id, email])
+    cell = worksheet.find(unique_id, in_column=1)
+    if cell == None:
+        worksheet.append_row([unique_id, email])
+    else:
+        row = cell.row
+        worksheet.update_cell(row, 2, email)
+

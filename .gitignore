@@ -1,0 +1,6 @@
+venv/
+channels.json
+questions.json
+acosus-discord-d7560833c35f.json.json
+.env
+__pycache__

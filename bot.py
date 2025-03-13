@@ -25,7 +25,6 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 @tasks.loop(seconds=INACTIVITY_LOOP_TIME)
 async def check_inactivity():
     print(f"Checking inactivity at {datetime.utcnow()}")
-
     for key in last_message_times:
         if last_message_times[key] is not None:
             inactivity_duration = datetime.utcnow() - last_message_times[key]
@@ -88,9 +87,10 @@ async def handle_dm_verification(message):
 
 async def handle_guild_message(message):
     """Handles messages sent in guild channels."""
-    last_message_times[message.channel.id] = datetime.utcnow()
-    message_data = extract_message_data(message)
-    save_message_data(message_data)
+    if message.channel.id in last_message_times.keys():
+        last_message_times[message.channel.id] = datetime.utcnow()
+        message_data = extract_message_data(message)
+        save_message_data(message_data)
 
 
 def extract_message_data(message):

@@ -49,22 +49,29 @@ async def on_ready():
         check_inactivity.start()
 
 
+# @bot.event
+# async def on_message(message):
+#     if message.author == bot.user:
+#         return  # Ignore bot messages
+
+#     if message.guild is None:
+#         await handle_dm_verification(message)
+#     else:
+#         await handle_guild_message(message)
+#         await bot.process_commands(message) 
+
 @bot.event
 async def on_message(message):
-    if message.author == bot.user:
-        return  # Ignore bot messages
-
     if message.guild is None:
+        if message.author == bot.user:
+            return  # Ignore bot DMs
         await handle_dm_verification(message)
     else:
-        await handle_guild_message(message)
-        await bot.process_commands(message) 
+        await handle_guild_message(message)  # Process all guild messages, including bot's
+        if message.author != bot.user:  # Only process commands for non-bot messages
+            await bot.process_commands(message)
 
 
-
-# FIX ME: what happens when someone that is already verified, writes another email
-# FIXME: make it so that students only get access to discord after both verification processeses
-# If user has a typo, they get role removed, once they resend the correct email, the "welcome" is resent again. fix this
 async def handle_dm_verification(message):
     """Handles verification of a user via DM."""
     guild = bot.get_guild(int(SERVER_ID))
@@ -79,8 +86,6 @@ async def handle_dm_verification(message):
             await message.channel.send("Thank you! Your email has been recorded.")
         else:
             await message.channel.send("We could not find that email in our records. Try again if there was a typo.")
-            # if transfer_student_role and transfer_student_role in member.roles:
-            #     await member.remove_roles(transfer_student_role)
     else:
         await message.channel.send("Your email has already been recorded. Thank you")
 
@@ -89,8 +94,9 @@ async def handle_guild_message(message):
     """Handles messages sent in guild channels."""
     if message.channel.id in last_message_times.keys():
         last_message_times[message.channel.id] = datetime.utcnow()
-        message_data = extract_message_data(message)
-        save_message_data(message_data)
+
+    message_data = extract_message_data(message)
+    save_message_data(message_data)
 
 
 def extract_message_data(message):

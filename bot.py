@@ -121,8 +121,7 @@ def extract_message_data(message):
 async def on_member_join(member):
     channel = discord.utils.get(member.guild.text_channels, name="general")
     if channel:
-        await channel.send(f"Welcome {member.mention} to {member.guild.name}! Introduce yourself!")
-
+        await channel.send(f"Welcome {member.mention}!\nIntroduce yourself without telling us your name, but answering the following questions.\nWhen did you join Old Westbury? \nWhere did you transfer from? \nWhat was your motivation in transferring to Old Westbury? \nDuring the transition what challenges did you encounter? \nHow did your expectations or career plan change after transferring? \nPlease share any particular experience you feel important as a transfer computing major student.""")
 
 @bot.event
 async def on_reaction_add(reaction, user):
